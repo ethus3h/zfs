@@ -21,8 +21,8 @@
 
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2011 Nexenta Systems, Inc. All rights reserved.
  * Copyright (c) 2012, 2016 by Delphix. All rights reserved.
+ * Copyright 2016 Nexenta Systems, Inc.  All rights reserved.
  * Copyright (c) 2013 by Saso Kiselkov. All rights reserved.
  */
 
@@ -229,6 +229,8 @@ typedef void zio_done_func_t(zio_t *zio);
 extern int zio_dva_throttle_enabled;
 extern const char *zio_type_name[ZIO_TYPES];
 
+struct range_tree;
+
 /*
  * A bookmark is a four-tuple <objset, object, level, blkid> that uniquely
  * identifies any block in the pool.  By convention, the meta-objset (MOS)
@@ -358,6 +360,11 @@ typedef int zio_pipe_stage_t(zio_t *zio);
 #define	ZIO_REEXECUTE_NOW	0x01
 #define	ZIO_REEXECUTE_SUSPEND	0x02
 
+typedef struct zio_alloc_list {
+	list_t  zal_list;
+	uint64_t zal_size;
+} zio_alloc_list_t;
+
 typedef struct zio_link {
 	zio_t		*zl_parent;
 	zio_t		*zl_child;
@@ -417,6 +424,7 @@ struct zio {
 	avl_node_t	io_queue_node;
 	avl_node_t	io_offset_node;
 	avl_node_t	io_alloc_node;
+	zio_alloc_list_t 	io_alloc_list;
 
 	/* Internal pipeline state */
 	enum zio_flag	io_flags;
@@ -482,6 +490,10 @@ extern zio_t *zio_claim(zio_t *pio, spa_t *spa, uint64_t txg,
 
 extern zio_t *zio_ioctl(zio_t *pio, spa_t *spa, vdev_t *vd, int cmd,
     zio_done_func_t *done, void *private, enum zio_flag flags);
+
+extern zio_t *zio_trim(spa_t *spa, vdev_t *vd, struct range_tree *tree,
+    zio_done_func_t *done, void *private, enum zio_flag flags,
+    int dkiocfree_flags, metaslab_t *msp);
 
 extern zio_t *zio_read_phys(zio_t *pio, vdev_t *vd, uint64_t offset,
     uint64_t size, struct abd *data, int checksum,
